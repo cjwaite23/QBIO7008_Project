@@ -216,7 +216,7 @@ ggsave(filename = "5_Figures/SSMs/pop_growth/final_riv_sex_figures/all_plot.jpg"
        height = 8, width = 12, units = "in", dpi = 1000)
 
 ##### Create climate data #####
-load("1_Data/worldclim_data/climate_data.RData")
+load("2_Data_manipulation/data_files/climate_data.RData")
 
 #CA begins in March 2008 - month 13
 dry_wet = c(1,1,1,0,0,0,0,0,0,0,1,1) #1 = dry season, begins at March
@@ -227,12 +227,9 @@ clim <- clim_data[,mar_08_col:(mar_08_col + 97 - 1)] %>%
   as.matrix() %>% t() %>% as.data.frame() %>%
   mutate(Occasion = 1:97) %>%
   rename("prec" = "V1", "tmin" = "V2", "tmax" = "V3", "dry" = "V4")
+
 ##### Performing analyses of covariates explanation #####
-load("3_Analyses/state_space_models/SSM_final_analysis/ssm_preds.RData")
-load("3_Analyses/state_space_models/SSM_final_analysis/clim_data.RData")
-
-# We are creating linear models of growth rate, phi and B as a function of covariates and N
-
+# We are creating linear models of growth rate as a function of covariates and N
 # Firstly we need to get the right data:
 #   we need to generate growth rates for all time steps not the first steps
 growth_rate <- rep(NA, times = dim(ssm_preds)[1])
@@ -249,64 +246,9 @@ reg_data <- ssm_preds %>%
   left_join(clim, by = "Occasion") %>%
   mutate(tav = (tmin + tmax) / 2,
          Canopy = as.factor(ifelse(Stream == "LL" | Stream == "CA", "Unthinned", "Thinned")))
-save(reg_data, file = "3_Analyses/state_space_models/SSM_final_analysis/reg_data.RData")
+save(reg_data, file = "4_Results/SSMs/pop_growth/final_riv_sex_models/reg_data.RData")
 
-##### Perform analyses of growth rate #####
-load("3_Analyses/state_space_models/SSM_final_analysis/reg_data.RData")
-
-# Start with growth rate:
-# Model selection
-N_rate_df <- reg_data %>% select(N_est, Canopy, Sex, prec, tav, N_rate) %>% na.omit() %>%
-  mutate("Canopy:tav" = (as.integer(Canopy) - 1) * tav,
-         "Canopy:N_est" = (as.integer(Canopy) - 1) * N_est,
-         Sex = as.factor(Sex)) %>%
-  select(N_est, Canopy, Sex, prec, tav, "Canopy:tav", "Canopy:N_est", N_rate)
-
-# Look at removing the following interactions: prec:tav, prec:dry
-N_rate_best_AIC <- bestglm(N_rate_df, IC = "AIC", TopModels = 10)
-N_rate_best_AIC$BestModels
-summary(N_rate_best_AIC$BestModel)
-# Fit the best model
-N_rate_best <- lm(N_rate ~ N_est + Canopy + Sex + prec + tav + Canopy*tav,
-                  data = reg_data, na.action = na.omit)
-summary(N_rate_best)
-
-##### Perform analyses of recruitment #####
-# Model selection
-B_df <- reg_data %>% select(N_est, Canopy, Sex, prec, tav, B) %>% na.omit() %>%
-  mutate("Canopy:tav" = (as.integer(Canopy) - 1) * tav,
-         "Canopy:N_est" = (as.integer(Canopy) - 1) * N_est,
-         Sex = as.factor(Sex)) %>%
-  select(N_est, Canopy, Sex, prec, tav, "Canopy:tav", "Canopy:N_est", B)
-
-# Look at removing the following interactions: prec:tav, prec:dry
-B_best_AIC <- bestglm(B_df, IC = "AIC", TopModels = 10)
-B_best_AIC$BestModels
-summary(B_best_AIC$BestModel)
-# Fit the best model
-B_best <- lm(B ~ N_est + Canopy + Sex + prec,
-             data = reg_data, na.action = na.omit)
-summary(B_best)
-
-##### Perform analyses of survival rate #####
-# Model selection
-phi_df <- reg_data %>% select(N_est, Canopy, Sex, prec, tav, phi) %>% na.omit() %>%
-  mutate("Canopy:tav" = (as.integer(Canopy) - 1) * tav,
-         "Canopy:N_est" = (as.integer(Canopy) - 1) * N_est,
-         Sex = as.factor(Sex)) %>%
-  select(N_est, Canopy, Sex, prec, tav, "Canopy:tav", "Canopy:N_est", phi)
-
-# Look at removing the following interactions: prec:tav, prec:dry
-phi_best_AIC <- bestglm(phi_df, IC = "AIC", TopModels = 10)
-phi_best_AIC$BestModels
-summary(phi_best_AIC$BestModel)
-# Fit the best model
-phi_best <- lm(phi ~ N_est + Canopy + Sex + prec + tav + Canopy*tav,
-               data = reg_data, na.action = na.omit)
-summary(phi_best)
-
-##################################################################
-##### New analyses of covariates #####
+##### Analysis of growth rate #####
 # N_rate will be a total growth rate, so we need to collate population sizes by sex
 total_Ns <- ssm_preds %>%
   dplyr::select(Occasion, Stream, N_est) %>%
@@ -326,7 +268,6 @@ reg_data_tot <- total_Ns %>%
   mutate(tav = (tmin + tmax) / 2,
          Canopy = as.factor(ifelse(Stream == "LL" | Stream == "CA", "Unthinned", "Thinned")))
 
-##### Perform analyses of growth rate #####
 # Model selection
 N_rate_df <- reg_data_tot %>% ungroup() %>%
   dplyr::select(N_total, Canopy, prec, tav, N_rate) %>% na.omit() %>%
@@ -336,6 +277,7 @@ N_rate_df <- reg_data_tot %>% ungroup() %>%
   dplyr::select(N_total, Canopy, prec, tav, "Canopy:tav", "Canopy:prec", "Canopy:N_total", N_rate) %>%
   as.data.frame()
 
+# inspect best models
 N_rate_best_AIC <- bestglm(N_rate_df, IC = "AIC", TopModels = 10)
 N_rate_best_AIC$BestModels
 summary(N_rate_best_AIC$BestModel)
@@ -345,102 +287,11 @@ N_rate_best <- lm(N_rate ~ N_total + Canopy + prec + tav + Canopy*prec + Canopy*
 summary(N_rate_best)
 vif(N_rate_best, type = "predictor")
 
-##### Perform analyses of survival rate ######
-reg_data <- ssm_preds %>%
-  dplyr::select(Occasion, Stream, Sex, B, phi) %>%
-  left_join(clim, by = "Occasion") %>%
-  left_join(dplyr::select(total_Ns, -N_rate), by = c("Occasion", "Stream")) %>%
-  mutate(tav = (tmin + tmax) / 2,
-         Canopy = as.factor(ifelse(Stream == "LL" | Stream == "CA", "Unthinned", "Thinned")))
 
-phi_df <- reg_data %>% dplyr::select(N_total, Canopy, Sex, prec, tav, phi) %>% na.omit() %>%
-  mutate(N_total_inv = 1 / N_total,
-         "Canopy:tav" = (as.integer(Canopy) - 1) * tav,
-         "Canopy:N_total_inv" = (as.integer(Canopy) - 1) * N_total_inv,
-         Sex = as.factor(Sex)) %>%
-  dplyr::select(N_total_inv, Canopy, Sex, prec, tav, "Canopy:tav", "Canopy:N_total_inv", phi)
-
-phi_best_AIC <- bestglm(phi_df, IC = "AIC", TopModels = 10)
-phi_best_AIC$BestModels
-summary(phi_best_AIC$BestModel)
-
-phi_best <- lm(phi ~ N_total_inv + Canopy + Sex + prec + tav + Canopy*tav,
-               data = phi_df, na.action = na.omit)
-summary(phi_best)
-vif(phi_best, type = "predictor")
-
-##### Perform analyses of recruitment #####
-B_df <- reg_data %>% dplyr::select(N_total, Canopy, Sex, prec, tav, B) %>% na.omit() %>%
-  mutate(N_total_inv = 1 / N_total,
-         "Canopy:tav" = (as.integer(Canopy) - 1) * tav,
-         "Canopy:N_total_inv" = (as.integer(Canopy) - 1) * N_total_inv,
-         Sex = as.factor(Sex)) %>%
-  dplyr::select(N_total_inv, Canopy, prec, tav, "Canopy:tav", "Canopy:N_total_inv", B)
-
-B_best_AIC <- bestglm(B_df, IC = "AIC", TopModels = 10)
-B_best_AIC$BestModels
-summary(B_best_AIC$BestModel)
-
-B_best <- lm(B ~ N_total_inv + Canopy + prec + tav + Canopy*tav + Canopy*N_total_inv,
-             data = B_df, na.action = na.omit)
-summary(B_best)
-vif(B_best, type = "predictor")
-
-#########################################################################
 ###### Plotting regression results #####
-##### Growth Rate #####
+##### Growth Rate added variable plots #####
 avPlots(N_rate_best)
-##### N_Rate - Ninv #####
-res.Nr <- residuals(lm(N_rate ~ Canopy + prec + tav + Canopy*prec + Canopy*tav,
-                       data = N_rate_df, na.action = na.omit))
-res.Ninv <- residuals(lm(N_total_inv ~ Canopy + prec + tav + Canopy*prec + Canopy*tav,
-                         data = N_rate_df, na.action = na.omit))
-res.points <- data.frame(res.Nr, res.Ninv)
-newdat <- data.frame(seq(min(na.omit(res.Ninv)),
-                         max(na.omit(res.Ninv)),
-                         length.out=500)) 
-names(newdat) <- c("res.Ninv")
-pred <- as.data.frame(predict(lm(res.Nr ~ res.Ninv), 
-                              newdata = newdat, 
-                              interval = "c"))
-newdat <- cbind.data.frame(newdat, pred)
-
-Ninv_pr_plot <- ggplot() +
-  geom_point(data = res.points, mapping = aes(x = res.Ninv, y = res.Nr), alpha = 0.5) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = fit), colour = "blue", size = 1) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = upr), colour = "blue", size = 1, linetype = 2) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = lwr), colour = "blue", size = 1, linetype = 2) +
-  theme_classic() +
-  xlab("Residuals of N_inv") +
-  ylab("Residuals of N_rate")
-
-##### N_Rate - prec #####
-Canopy <- rep(c(0,1), times = 500)
-
-res.Nr <- residuals(lm(N_rate ~ N_total_inv + tav + Canopy*tav,
-                       data = N_rate_df, na.action = na.omit))
-res.prec <- residuals(lm(prec ~ N_total_inv + tav + Canopy*tav,
-                         data = N_rate_df, na.action = na.omit))
-res.points <- data.frame(res.Nr, res.prec)
-newdat <- data.frame(res.pred = rep(seq(min(na.omit(res.prec)),
-                                        max(na.omit(res.prec)),
-                                        length.out=500), times = 2),
-                     Canopy = rep(c(0,1), times = 500))
-pred <- as.data.frame(predict(lm(res.Nr ~ res.Ninv*Canopy), 
-                              newdata = newdat, 
-                              interval = "c"))
-newdat <- cbind.data.frame(newdat, pred)
-
-Ninv_pr_plot <- ggplot() +
-  geom_point(data = res.points, mapping = aes(x = res.Ninv, y = res.Nr), alpha = 0.5) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = fit), colour = "blue", size = 1) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = upr), colour = "blue", size = 1, linetype = 2) +
-  geom_line(data = newdat, mapping = aes(x = res.Ninv, y = lwr), colour = "blue", size = 1, linetype = 2) +
-  theme_classic() +
-  xlab("Residuals of N_inv") +
-  ylab("Residuals of N_rate")
-
-##### Look at using visreg #####
+##### Plot partial residuals with visreg #####
 #N_rate_best is our focus
 par(mfrow=c(1,3))
 N_plot <- visreg(N_rate_best, "N_total", by = "Canopy", overlay = TRUE,
@@ -462,7 +313,7 @@ N_plot + prec_plot + tav_plot +
   theme_classic() +
   theme(legend.position = "bottom") &
   plot_annotation(tag_levels = "A")
-ggsave(filename = "3_Analyses/state_space_models/SSM_final_analysis/visreg_plot.pdf",
+ggsave(filename = "5_Figures/SSMs/pop_growth/final_riv_sex_figures/visreg_plot.pdf",
        height = 5, width = 10, units = "in")
-ggsave(filename = "3_Analyses/state_space_models/SSM_final_analysis/visreg_plot.jpg",
+ggsave(filename = "5_Figures/SSMs/pop_growth/final_riv_sex_figures/visreg_plot.jpg",
        height = 5, width = 10, units = "in", dpi = 1000)
