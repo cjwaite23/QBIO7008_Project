@@ -1,0 +1,32 @@
+
+  model {
+    # Priors and constraints
+    
+    logN.est[1] ~ dnorm(init_logN, 1)
+    b ~ dnorm(1, 0.01)
+  
+    sigma.proc ~ dunif(0, 2)
+    sigma2.proc <- pow(sigma.proc, 2)
+    tau.proc <- pow(sigma.proc, -2)
+    
+    # sigma.obs ~ dunif(0, 2)
+    # sigma2.obs <- pow(sigma.obs, 2)
+    tau.obs <- pow(sigma.obs, -2)
+    
+    # Likelihood
+    # State process
+    for (t in 1:(Time - 1)) {
+      eps[t] ~ dnorm(0, tau.proc)
+      logN.est[t+1] <- b + logN.est[t] + eps[t]
+    }
+    # Observation process
+    for (t in 1:Time) {
+      logy[t] ~ dnorm(logN.est[t], tau.obs[t])
+    }
+    
+    #Population size on real scale
+    for (t in 1:Time) {
+      N.est[t] <- exp(logN.est[t])
+    }
+  }  
+  
