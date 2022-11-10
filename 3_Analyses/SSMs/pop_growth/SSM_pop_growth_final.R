@@ -167,14 +167,14 @@ ggsave(filename = "5_Figures/SSMs/pop_growth/final_riv_sex_figure/LL_plot.pdf",
 
 
 ##### Grouping the data #####
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/LL_F_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/LL_M_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/UL_F_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/UL_M_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/TY_F_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/TY_M_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/CA_F_ssm.RData")
-load(file = "4_Results/SSMs/pop_growth/final_riv_sex_models/CA_M_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/LL_F_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/LL_M_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/UL_F_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/UL_M_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/TY_F_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/TY_M_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/CA_F_ssm.RData")
+load(file = "~/QBIO7008 Guppy Project/7008_large_files/4_Results/CA_M_ssm.RData")
 
 LL_preds_F <- tibble(N_est = LL_F_ssm$mean$N.est, N_LCL_est = LL_F_ssm$q2.5$N.est, N_UCL_est = LL_F_ssm$q97.5$N.est)
 LL_preds_M <- tibble(N_est = LL_M_ssm$mean$N.est, N_LCL_est = LL_M_ssm$q2.5$N.est, N_UCL_est = LL_M_ssm$q97.5$N.est)
