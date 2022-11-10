@@ -1,6 +1,6 @@
 ##### Description #####
 # Script to fit the Jolly-Seber restricted dynamic occupancy
-# state space formulation to the data
+# state space formulation to the data with JAGS
 
 # JAGS script code obtained from Kery & Schaub 2011
 
@@ -125,7 +125,7 @@ JS_ssm <- function(CH, ni, nt, nb, nc) {
   # Parameters monitored
   parameters <- c("psi", "NSuper", "p", "phi", "b", "N", "B", "gamma")
   
-  mod_file = "3_Analyses/state_space_models/js_ssm_runtimes/js_ssm.jags"
+  mod_file = "3_Analyses/SSMs/jolly-seber/jags_models/js_ssm.jags"
   
   js_ssm <- jags(data = jags.data, inits = inits, parameters.to.save = parameters,
                  model.file = mod_file,
