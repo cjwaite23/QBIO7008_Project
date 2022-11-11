@@ -1,0 +1,70 @@
+
+  model {
+    # Fix all known z's
+    for (x in 1:X) {
+      z[fixed_ID[x], fixed_time[x]] <- fixed_value[x]
+    }
+    # priors and constraints
+    # survival probability coefficients
+    for (t in 1:(Time - 1)) {
+      phi[t] ~ dunif(0, 1)
+    }
+    # capture probabilities
+    for (t in 1:Time) {
+      p[t] ~ dunif(0, 1)
+      gamma[t] ~ dunif(0, 1)
+    }
+    
+    # Likelihood
+    for (i in 1:M) {
+      # First occasion
+      # State process
+      z[i,1] ~ dbern(gamma[1])
+      mu1[i] <- z[i, 1] * p[1]
+      # Observation process
+      y[i, 1] ~ dbern(mu1[i])
+      # Subsequent occasions
+      for (t in 2:Time) {
+        # Stateprocess
+        q[i, t-1] <- 1 - z[i, t-1] #Availability for recruitment
+        mu2[i, t] <- phi[t-1] * z[i, t-1] + gamma[t] * prod(q[i, 1:(t-1)])
+        z[i, t] ~ dbern(mu2[i, t])
+        # Observation process
+        mu3[i, t] <- z[i, t] * p[t]
+        y[i, t] ~ dbern(mu3[i, t])
+      } #t
+    } #i
+    
+    # Calculate derived population parameters
+    for (t in 1:Time) {
+      qgamma[t] <- 1 - gamma[t]
+    }
+    cprob[1] <- gamma[1]
+    for (t in 2:Time) {
+      cprob[t] <- gamma[t] * prod(qgamma[1:(t-1)])
+    } #t
+    psi <- sum(cprob[]) # Inclusion probability
+    for (t in 1:Time) {
+      b[t] <- cprob[t] / psi # Entry probability
+    } #t
+
+    for (i in 1:M) {
+      recruit[i, 1] <- z[i, 1]
+      for (t in 2:Time) {
+        recruit[i, t] <- (1 - z[i, t-1]) * z[i, t]
+      } #t
+    } #i
+
+    for (t in 1:Time) {
+      N[t] <- sum(z[1:M, t])  # Actual population size
+      B[t] <- sum(recruit[1:M, t])  #Number of entries
+    } #t
+    
+    for (i in 1:M) {
+      Nind[i] <- sum(z[i, 1:Time])
+      Nalive[i] <- 1 - equals(Nind[i], 0)
+    } #i
+
+    Nsuper <- sum(Nalive[]) # Superpopulation size
+  }
+
