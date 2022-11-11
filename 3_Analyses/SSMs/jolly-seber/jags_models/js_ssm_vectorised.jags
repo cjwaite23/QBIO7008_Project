@@ -1,0 +1,56 @@
+
+  model {
+    # priors and constraints
+    T_less_one <- Time - 1
+    # survival probability coefficients
+    for (t in 1:T_less_one) {
+      phi[t] ~ dunif(0, 1)
+    }
+    # capture probabilities
+    for (t in 1:Time) {
+      p[t] ~ dunif(0, 1)
+      gamma[t] ~ dunif(0, 1)
+    }
+    
+    # Likelihood
+    for (i in 1:M) {
+      # First occasion
+      # State process
+      z[i,1] ~ dbern(gamma[1])
+      mu1[i] <- z[i, 1] * p[1]
+      # Observation process
+      y[i, 1] ~ dbern(mu1[i])
+      # Subsequent occasions
+      q[1:T_less_one] <- 1 - z[i, 1:T_less_one] #Availability for recruitment
+      r[1:T_less_one] <- phi[1:T_less_one] * z[i, 1:T_less_one]
+      for (t in 2:Time) {
+        # Stateprocess
+        z[i, t] ~ dbern(r[t-1] + gamma[t] * prod(q[1:(t-1)]))
+        # Observation process
+        y[i, t] ~ dbern(z[i, t] * p[t])
+      } #t
+    } #i
+    
+    # Calculate derived population parameters
+    qgamma <- 1 - gamma
+    
+    cprob[1] <- gamma[1]
+    for (t in 2:Time) {
+      cprob[t] <- gamma[t] * prod(qgamma[1:(t-1)])
+    } #t
+    psi <- sum(cprob[]) # Inclusion probability
+    b <- cprob / psi # Entry probability
+
+    for (i in 1:M) {
+      recruit[i, 1] <- z[i, 1]
+      for (t in 2:Time) {
+        recruit[i, t] <- (1 - z[i, t-1]) * z[i, t]
+      } #t
+    } #i
+
+    for (t in 1:Time) {
+      N[t] <- sum(z[1:M, t])  # Actual population size
+      B[t] <- sum(recruit[1:M, t])  #Number of entries
+    } #t
+  }
+
